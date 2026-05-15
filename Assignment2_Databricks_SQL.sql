@@ -305,12 +305,14 @@ DESCRIBE Hosts;
 -- COMMAND ----------
 
 --  small
+
+-- THIS WAS CHANGED TO BE POSTGRESQL 
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
-FROM Listings_Small l
-JOIN Hosts h ON l.host_id = h.id
-JOIN Reviews_Small r ON l.id = r.listing_id
-JOIN Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
+FROM Airbnb.Listings_Small l
+JOIN Airbnb.Hosts h ON l.host_id = h.id
+JOIN Airbnb.Reviews_Small r ON l.id = r.listing_id
+JOIN Airbnb.Cities c ON l.city_id = c.id
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -323,7 +325,7 @@ FROM Listings_Medium l
 JOIN Hosts_medium h ON l.host_id = h.id
 JOIN Reviews_Medium r ON l.id = r.listing_id
 JOIN Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -336,7 +338,7 @@ FROM Listings_Large l
 JOIN Hosts h ON l.host_id = h.id
 JOIN Reviews_Large r ON l.id = r.listing_id
 JOIN Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -348,7 +350,7 @@ FROM Listings_Large l
 JOIN Hosts h ON l.host_id = h.id
 JOIN Reviews_Large r ON l.id = r.listing_id
 JOIN Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
