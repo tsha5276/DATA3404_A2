@@ -391,55 +391,142 @@ LIMIT 10;
 -- MAGIC These would speed up the joins and filters significantly.
 -- MAGIC
 
+
+-- INDEXES:
+
+-- FIRST INDEX:
+CREATE INDEX idx_reviews_small_listing_date  ON Airbnb.Reviews_Small(listing_id, review_date);
+CREATE INDEX idx_reviews_medium_listing_date ON Airbnb.Reviews_Medium(listing_id, review_date);
+CREATE INDEX idx_reviews_large_listing_date  ON Airbnb.Reviews_Large(listing_id, review_date);
+
+-- Re-run all three queries → record runtimes
+-- EXPLAIN ANALYZE again → screenshot to show the plan changed
+
+
+
+-- RESET BETWEEN TESTS:
+
+DROP INDEX Airbnb.idx_reviews_small_listing_date;
+DROP INDEX Airbnb.idx_reviews_medium_listing_date;
+DROP INDEX Airbnb.idx_reviews_large_listing_date;
+
+
+-- CLEAR THE BUFFER CACHE BEFORE EACH TIMED RUN:
+
+DISCARD ALL;
+
+
+-- RUN THE EXPLAIN ANALYZE AND CAPTURE THE PLAN:
+
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+-- ...... (on each of the queries)
+
 -- COMMAND ----------
 
 -- MAGIC %md
 -- MAGIC # Task 2
 
 -- COMMAND ----------
-
--- small listing
-SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
-FROM Listings_Small l
-JOIN Hosts h ON l.host_id = h.id
-JOIN Neighbourhoods n ON l.neighbourhood = n.id
-JOIN Cities c ON l.city_id = c.id
-JOIN Reviews_Small r ON l.id = r.listing_id
-WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%'  OR LOWER(r.comments) LIKE '%clean place%')
-GROUP BY c.city_name, n.nhood_name
+EXPLAIN ANALYZE
+SELECT
+    c.city_name,
+    n.nhood_name,
+    COUNT(DISTINCT l.id) AS num_listings,
+    COUNT(r.id) AS num_positive_reviews,
+    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
+    MAX(r.review_date) AS most_recent_review
+FROM Airbnb.Listings_Small l
+JOIN Airbnb.Hosts h
+    ON l.host_id = h.id
+JOIN Airbnb.Neighbourhoods n
+    ON l.neighbourhood = n.id
+JOIN Airbnb.Cities c
+    ON l.city_id = c.id
+JOIN Airbnb.Reviews_Small r
+    ON l.id = r.listing_id
+WHERE
+    c.country = 'Australia'
+    AND h.is_verified = 't'
+    AND 'Wifi' = ANY(l.amenities)
+    AND (
+        r.comments ILIKE '%great place%'
+        OR r.comments ILIKE '%clean place%'
+    )
+GROUP BY
+    c.city_name,
+    n.nhood_name
+HAVING COUNT(r.id) >= 650
+ORDER BY num_positive_reviews DESC
+LIMIT 10;
+/* =========================================================
+   MEDIUM DATASET QUERY
+   ========================================================= */
+EXPLAIN ANALYZE
+SELECT
+    c.city_name,
+    n.nhood_name,
+    COUNT(DISTINCT l.id) AS num_listings,
+    COUNT(r.id) AS num_positive_reviews,
+    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
+    MAX(r.review_date) AS most_recent_review
+FROM Airbnb.Listings_Medium l
+JOIN Airbnb.Hosts h
+    ON l.host_id = h.id
+JOIN Airbnb.Neighbourhoods n
+    ON l.neighbourhood = n.id
+JOIN Airbnb.Cities c
+    ON l.city_id = c.id
+JOIN Airbnb.Reviews_Medium r
+    ON l.id = r.listing_id
+WHERE
+    c.country = 'Australia'
+    AND h.is_verified = 't'
+    AND 'Wifi' = ANY(l.amenities)
+    AND (
+        r.comments ILIKE '%great place%'
+        OR r.comments ILIKE '%clean place%'
+    )
+GROUP BY
+    c.city_name,
+    n.nhood_name
+HAVING COUNT(r.id) >= 650
+ORDER BY num_positive_reviews DESC
+LIMIT 10;
+/* =========================================================
+   LARGE DATASET QUERY
+   ========================================================= */
+EXPLAIN ANALYZE
+SELECT
+    c.city_name,
+    n.nhood_name,
+    COUNT(DISTINCT l.id) AS num_listings,
+    COUNT(r.id) AS num_positive_reviews,
+    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
+    MAX(r.review_date) AS most_recent_review
+FROM Airbnb.Listings_Large l
+JOIN Airbnb.Hosts h
+    ON l.host_id = h.id
+JOIN Airbnb.Neighbourhoods n
+    ON l.neighbourhood = n.id
+JOIN Airbnb.Cities c
+    ON l.city_id = c.id
+JOIN Airbnb.Reviews_Large r
+    ON l.id = r.listing_id
+WHERE
+    c.country = 'Australia'
+    AND h.is_verified = 't'
+    AND 'Wifi' = ANY(l.amenities)
+    AND (
+        r.comments ILIKE '%great place%'
+        OR r.comments ILIKE '%clean place%'
+    )
+GROUP BY
+    c.city_name,
+    n.nhood_name
 HAVING COUNT(r.id) >= 650
 ORDER BY num_positive_reviews DESC
 LIMIT 10;
 
--- COMMAND ----------
-
--- medium listing
-SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
-FROM Listings_Medium l
-JOIN Hosts h ON l.host_id = h.id
-JOIN Neighbourhoods n ON l.neighbourhood = n.id
-JOIN Cities c ON l.city_id = c.id
-JOIN Reviews_Medium r ON l.id = r.listing_id
-WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%' OR LOWER(r.comments) LIKE '%clean place%')
-GROUP BY c.city_name, n.nhood_name
-HAVING COUNT(r.id) >= 650
-ORDER BY num_positive_reviews DESC
-LIMIT 10;
-
--- COMMAND ----------
-
--- large listing
-SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
-FROM Listings_Large l
-JOIN Hosts h ON l.host_id = h.id
-JOIN Neighbourhoods n ON l.neighbourhood = n.id
-JOIN Cities c ON l.city_id = c.id
-JOIN Reviews_Large r ON l.id = r.listing_id
-WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%' OR LOWER(r.comments) LIKE '%clean place%')
-GROUP BY c.city_name, n.nhood_name
-HAVING COUNT(r.id) >= 650
-ORDER BY num_positive_reviews DESC
-LIMIT 10;
 
 -- COMMAND ----------
 
