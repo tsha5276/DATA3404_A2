@@ -418,10 +418,21 @@ CREATE INDEX IF NOT EXISTS idx_hosts_medium_superhost ON Airbnb.Hosts_medium(is_
 
 -- RESET BETWEEN TESTS:
 
+-- FIRST INDEX:
 DROP INDEX Airbnb.idx_reviews_small_listing_date;
 DROP INDEX Airbnb.idx_reviews_medium_listing_date;
 DROP INDEX Airbnb.idx_reviews_large_listing_date;
 
+-- SECOND INDEX:
+DROP INDEX Airbnb.idx_listings_small_host_city;
+DROP INDEX Airbnb.idx_listings_medium_host_city;
+DROP INDEX Airbnb.idx_listings_large_host_city;
+
+
+-- THIRD INDEX:
+DROP INDEX Airbnb.idx_hosts_superhost;
+DROP INDEX Airbnb.idx_hosts_small_superhost;
+DROP INDEX Airbnb.idx_hosts_medium_superhost;
 
 -- CLEAR THE BUFFER CACHE BEFORE EACH TIMED RUN:
 
@@ -439,7 +450,7 @@ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 -- MAGIC # Task 2
 
 -- COMMAND ----------
-EXPLAIN ANALYZE
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     c.city_name,
     n.nhood_name,
@@ -473,7 +484,7 @@ LIMIT 10;
 /* =========================================================
    MEDIUM DATASET QUERY
    ========================================================= */
-EXPLAIN ANALYZE
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     c.city_name,
     n.nhood_name,
@@ -507,7 +518,7 @@ LIMIT 10;
 /* =========================================================
    LARGE DATASET QUERY
    ========================================================= */
-EXPLAIN ANALYZE
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT
     c.city_name,
     n.nhood_name,
