@@ -307,6 +307,7 @@ DESCRIBE Hosts;
 --  small
 
 -- THIS WAS CHANGED TO BE POSTGRESQL 
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
 FROM Airbnb.Listings_Small l
 JOIN Airbnb.Hosts h ON l.host_id = h.id
@@ -320,6 +321,7 @@ LIMIT 10;
 -- COMMAND ----------
 
 --medium 
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
 FROM Airbnb.Listings_Medium l
 JOIN Airbnb.Hosts_medium h ON l.host_id = h.id
@@ -333,6 +335,7 @@ LIMIT 10;
 -- COMMAND ----------
 
 -- large
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
 FROM Airbnb.Listings_Large l
 JOIN Airbnb.Hosts h ON l.host_id = h.id
