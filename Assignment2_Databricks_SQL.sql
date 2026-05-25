@@ -572,3 +572,20 @@ LIMIT 10;
 -- MAGIC CREATE INDEX idx_listings_neighbourhood ON Listings(neighbourhood, city_id);
 -- MAGIC CREATE INDEX idx_hosts_verified ON Hosts(id, is_verified);
 -- MAGIC CREATE INDEX idx_reviews_listing ON Reviews(listing_id);
+
+
+-- Possible index:
+-- 1. 
+CREATE INDEX idx_reviews_comments_gin ON Reviews USING gin(to_tsvector('english', comments));
+
+-- 2. 
+CREATE INDEX idx_reviews_comments_gin ON Reviews USING gin(to_tsvector('english', comments));
+
+-- will need to rewrite the WHERE condition to include this:
+to_tsvector('english', r.comments) @@ to_tsquery('english', 'great & place | clean & place')
+
+-- 3. 
+CREATE INDEX idx_listings_city_host_neighbourhood ON Listings(city_id, host_id, neighbourhood);
+
+-- 4. 
+CREATE INDEX idx_hosts_verified ON Hosts(id) WHERE is_verified = 't';
