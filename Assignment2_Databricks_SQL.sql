@@ -398,10 +398,19 @@ LIMIT 10;
 -- INDEXES:
 
 -- FIRST INDEX:
-CREATE INDEX idx_reviews_small_listing_date  ON Airbnb.Reviews_Small(listing_id, review_date);
-CREATE INDEX idx_reviews_medium_listing_date ON Airbnb.Reviews_Medium(listing_id, review_date);
-CREATE INDEX idx_reviews_large_listing_date  ON Airbnb.Reviews_Large(listing_id, review_date);
+CREATE INDEX IF NOT EXISTS idx_reviews_small_listing_date  ON Airbnb.Reviews_Small(listing_id, review_date);
+CREATE INDEX IF NOT EXISTS idx_reviews_medium_listing_date ON Airbnb.Reviews_Medium(listing_id, review_date);
+CREATE INDEX IF NOT EXISTS idx_reviews_large_listing_date  ON Airbnb.Reviews_Large(listing_id, review_date);
 
+-- SECOND INDEX:
+CREATE INDEX IF NOT EXISTS idx_listings_small_host_city  ON Airbnb.Listings_Small(host_id, city_id);
+CREATE INDEX IF NOT EXISTS idx_listings_medium_host_city ON Airbnb.Listings_Medium(host_id, city_id);
+CREATE INDEX IF NOT EXISTS idx_listings_large_host_city  ON Airbnb.Listings_Large(host_id, city_id);
+
+-- THIRD INDEX:
+CREATE INDEX IF NOT EXISTS idx_hosts_superhost        ON Airbnb.Hosts(is_superhost, id);
+CREATE INDEX IF NOT EXISTS idx_hosts_small_superhost  ON Airbnb.Hosts_small(is_superhost, id);
+CREATE INDEX IF NOT EXISTS idx_hosts_medium_superhost ON Airbnb.Hosts_medium(is_superhost, id);
 -- Re-run all three queries → record runtimes
 -- EXPLAIN ANALYZE again → screenshot to show the plan changed
 
