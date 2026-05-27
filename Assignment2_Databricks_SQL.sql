@@ -305,8 +305,18 @@ DESCRIBE Hosts;
 -- COMMAND ----------
 
 --  small
+SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
+FROM Listings_Small l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Reviews_Small r ON l.id = r.listing_id
+JOIN Cities c ON l.city_id = c.id
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
+GROUP BY l.id, l.listing_name
+ORDER BY num_reviews DESC
+LIMIT 10;
 
--- THIS WAS CHANGED TO BE POSTGRESQL 
+-- COMMAND ----------
+
 EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
 FROM Airbnb.Listings_Small l
@@ -318,16 +328,16 @@ GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
 
+
 -- COMMAND ----------
 
 --medium 
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
-FROM Airbnb.Listings_Medium l
-JOIN Airbnb.Hosts_medium h ON l.host_id = h.id
-JOIN Airbnb.Reviews_Medium r ON l.id = r.listing_id
-JOIN Airbnb.Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
+FROM Listings_Medium l
+JOIN Hosts_medium h ON l.host_id = h.id
+JOIN Reviews_Medium r ON l.id = r.listing_id
+JOIN Cities c ON l.city_id = c.id
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -335,13 +345,12 @@ LIMIT 10;
 -- COMMAND ----------
 
 -- large
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
-FROM Airbnb.Listings_Large l
-JOIN Airbnb.Hosts h ON l.host_id = h.id
-JOIN Airbnb.Reviews_Large r ON l.id = r.listing_id
-JOIN Airbnb.Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
+FROM Listings_Large l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Reviews_Large r ON l.id = r.listing_id
+JOIN Cities c ON l.city_id = c.id
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -349,11 +358,11 @@ LIMIT 10;
 -- COMMAND ----------
 
 EXPLAIN SELECT l.id, l.listing_name, COUNT(r.id) AS num_reviews, MAX(r.review_date) AS last_review_date
-FROM Airbnb.Listings_Large l
-JOIN Airbnb.Hosts h ON l.host_id = h.id
-JOIN Airbnb.Reviews_Large r ON l.id = r.listing_id
-JOIN Airbnb.Cities c ON l.city_id = c.id
-WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND EXTRACT(YEAR FROM r.review_date) = 2025
+FROM Listings_Large l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Reviews_Large r ON l.id = r.listing_id
+JOIN Cities c ON l.city_id = c.id
+WHERE c.city_name = 'Melbourne' AND h.is_superhost = 't' AND YEAR(r.review_date) = 2025
 GROUP BY l.id, l.listing_name
 ORDER BY num_reviews DESC
 LIMIT 10;
@@ -374,11 +383,11 @@ LIMIT 10;
 -- MAGIC ### PostgreSQL Runtimes
 -- MAGIC NEED TO RUN query on PostgreSQL with and without indexes on small/medium/large datasets and record runtimes here.
 -- MAGIC
--- MAGIC | Dataset | Without index | With index |
--- MAGIC |---------|--------------|------------|
--- MAGIC | Small   |              |            |
--- MAGIC | Medium  |              |            |
--- MAGIC | Large   |              |            |
+-- MAGIC | Dataset | Without indexes |
+-- MAGIC |---------|----------------|
+-- MAGIC | Small   |           |                          
+-- MAGIC | Medium  |           |                        
+-- MAGIC | Large   |           |                         
 -- MAGIC
 -- MAGIC ## Index Suggestions
 -- MAGIC The query filters heavily on:
@@ -394,162 +403,55 @@ LIMIT 10;
 -- MAGIC These would speed up the joins and filters significantly.
 -- MAGIC
 
-
--- INDEXES:
-
--- FIRST INDEX:
-CREATE INDEX IF NOT EXISTS idx_reviews_small_listing_date  ON Airbnb.Reviews_Small(listing_id, review_date);
-CREATE INDEX IF NOT EXISTS idx_reviews_medium_listing_date ON Airbnb.Reviews_Medium(listing_id, review_date);
-CREATE INDEX IF NOT EXISTS idx_reviews_large_listing_date  ON Airbnb.Reviews_Large(listing_id, review_date);
-
--- SECOND INDEX:
-CREATE INDEX IF NOT EXISTS idx_listings_small_host_city  ON Airbnb.Listings_Small(host_id, city_id);
-CREATE INDEX IF NOT EXISTS idx_listings_medium_host_city ON Airbnb.Listings_Medium(host_id, city_id);
-CREATE INDEX IF NOT EXISTS idx_listings_large_host_city  ON Airbnb.Listings_Large(host_id, city_id);
-
--- THIRD INDEX:
-CREATE INDEX IF NOT EXISTS idx_hosts_superhost        ON Airbnb.Hosts(is_superhost, id);
-CREATE INDEX IF NOT EXISTS idx_hosts_small_superhost  ON Airbnb.Hosts_small(is_superhost, id);
-CREATE INDEX IF NOT EXISTS idx_hosts_medium_superhost ON Airbnb.Hosts_medium(is_superhost, id);
--- Re-run all three queries → record runtimes
--- EXPLAIN ANALYZE again → screenshot to show the plan changed
-
-
-
--- RESET BETWEEN TESTS:
-
--- FIRST INDEX:
-DROP INDEX Airbnb.idx_reviews_small_listing_date;
-DROP INDEX Airbnb.idx_reviews_medium_listing_date;
-DROP INDEX Airbnb.idx_reviews_large_listing_date;
-
--- SECOND INDEX:
-DROP INDEX Airbnb.idx_listings_small_host_city;
-DROP INDEX Airbnb.idx_listings_medium_host_city;
-DROP INDEX Airbnb.idx_listings_large_host_city;
-
-
--- THIRD INDEX:
-DROP INDEX Airbnb.idx_hosts_superhost;
-DROP INDEX Airbnb.idx_hosts_small_superhost;
-DROP INDEX Airbnb.idx_hosts_medium_superhost;
-
--- CLEAR THE BUFFER CACHE BEFORE EACH TIMED RUN:
-
-DISCARD ALL;
-
-
--- RUN THE EXPLAIN ANALYZE AND CAPTURE THE PLAN:
-
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
--- ...... (on each of the queries)
-
 -- COMMAND ----------
 
 -- MAGIC %md
 -- MAGIC # Task 2
 
 -- COMMAND ----------
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-SELECT
-    c.city_name,
-    n.nhood_name,
-    COUNT(DISTINCT l.id) AS num_listings,
-    COUNT(r.id) AS num_positive_reviews,
-    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
-    MAX(r.review_date) AS most_recent_review
-FROM Airbnb.Listings_Small l
-JOIN Airbnb.Hosts h
-    ON l.host_id = h.id
-JOIN Airbnb.Neighbourhoods n
-    ON l.neighbourhood = n.id
-JOIN Airbnb.Cities c
-    ON l.city_id = c.id
-JOIN Airbnb.Reviews_Small r
-    ON l.id = r.listing_id
-WHERE
-    c.country = 'Australia'
-    AND h.is_verified = 't'
-    AND 'Wifi' = ANY(l.amenities)
-    AND (
-        r.comments ILIKE '%great place%'
-        OR r.comments ILIKE '%clean place%'
-    )
-GROUP BY
-    c.city_name,
-    n.nhood_name
-HAVING COUNT(r.id) >= 650
-ORDER BY num_positive_reviews DESC
-LIMIT 10;
-/* =========================================================
-   MEDIUM DATASET QUERY
-   ========================================================= */
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-SELECT
-    c.city_name,
-    n.nhood_name,
-    COUNT(DISTINCT l.id) AS num_listings,
-    COUNT(r.id) AS num_positive_reviews,
-    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
-    MAX(r.review_date) AS most_recent_review
-FROM Airbnb.Listings_Medium l
-JOIN Airbnb.Hosts h
-    ON l.host_id = h.id
-JOIN Airbnb.Neighbourhoods n
-    ON l.neighbourhood = n.id
-JOIN Airbnb.Cities c
-    ON l.city_id = c.id
-JOIN Airbnb.Reviews_Medium r
-    ON l.id = r.listing_id
-WHERE
-    c.country = 'Australia'
-    AND h.is_verified = 't'
-    AND 'Wifi' = ANY(l.amenities)
-    AND (
-        r.comments ILIKE '%great place%'
-        OR r.comments ILIKE '%clean place%'
-    )
-GROUP BY
-    c.city_name,
-    n.nhood_name
-HAVING COUNT(r.id) >= 650
-ORDER BY num_positive_reviews DESC
-LIMIT 10;
-/* =========================================================
-   LARGE DATASET QUERY
-   ========================================================= */
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-SELECT
-    c.city_name,
-    n.nhood_name,
-    COUNT(DISTINCT l.id) AS num_listings,
-    COUNT(r.id) AS num_positive_reviews,
-    ROUND(AVG(l.rating)::numeric, 2) AS avg_rating,
-    MAX(r.review_date) AS most_recent_review
-FROM Airbnb.Listings_Large l
-JOIN Airbnb.Hosts h
-    ON l.host_id = h.id
-JOIN Airbnb.Neighbourhoods n
-    ON l.neighbourhood = n.id
-JOIN Airbnb.Cities c
-    ON l.city_id = c.id
-JOIN Airbnb.Reviews_Large r
-    ON l.id = r.listing_id
-WHERE
-    c.country = 'Australia'
-    AND h.is_verified = 't'
-    AND 'Wifi' = ANY(l.amenities)
-    AND (
-        r.comments ILIKE '%great place%'
-        OR r.comments ILIKE '%clean place%'
-    )
-GROUP BY
-    c.city_name,
-    n.nhood_name
+
+-- small listing
+SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
+FROM Listings_Small l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Neighbourhoods n ON l.neighbourhood = n.id
+JOIN Cities c ON l.city_id = c.id
+JOIN Reviews_Small r ON l.id = r.listing_id
+WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%'  OR LOWER(r.comments) LIKE '%clean place%')
+GROUP BY c.city_name, n.nhood_name
 HAVING COUNT(r.id) >= 650
 ORDER BY num_positive_reviews DESC
 LIMIT 10;
 
+-- COMMAND ----------
+
+-- medium listing
+SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
+FROM Listings_Medium l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Neighbourhoods n ON l.neighbourhood = n.id
+JOIN Cities c ON l.city_id = c.id
+JOIN Reviews_Medium r ON l.id = r.listing_id
+WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%' OR LOWER(r.comments) LIKE '%clean place%')
+GROUP BY c.city_name, n.nhood_name
+HAVING COUNT(r.id) >= 650
+ORDER BY num_positive_reviews DESC
+LIMIT 10;
+
+-- COMMAND ----------
+
+-- large listing
+SELECT c.city_name, n.nhood_name, COUNT(DISTINCT l.id) AS num_listings, COUNT(r.id) AS num_positive_reviews, ROUND(AVG(l.rating), 2) AS avg_rating, MAX(r.review_date) AS most_recent_review
+FROM Listings_Large l
+JOIN Hosts h ON l.host_id = h.id
+JOIN Neighbourhoods n ON l.neighbourhood = n.id
+JOIN Cities c ON l.city_id = c.id
+JOIN Reviews_Large r ON l.id = r.listing_id
+WHERE c.country = 'Australia' AND h.is_verified = 't' AND l.amenities LIKE '%Wifi%' AND (LOWER(r.comments) LIKE '%great place%' OR LOWER(r.comments) LIKE '%clean place%')
+GROUP BY c.city_name, n.nhood_name
+HAVING COUNT(r.id) >= 650
+ORDER BY num_positive_reviews DESC
+LIMIT 10;
 
 -- COMMAND ----------
 
@@ -596,19 +498,165 @@ LIMIT 10;
 -- MAGIC CREATE INDEX idx_hosts_verified ON Hosts(id, is_verified);
 -- MAGIC CREATE INDEX idx_reviews_listing ON Reviews(listing_id);
 
+-- COMMAND ----------
 
--- Possible index:
--- 1. 
-CREATE INDEX idx_reviews_comments_gin ON Reviews USING gin(to_tsvector('english', comments));
+-- MAGIC %md
+-- MAGIC # Task 3
+-- MAGIC
 
--- 2. 
-CREATE INDEX idx_reviews_comments_gin ON Reviews USING gin(to_tsvector('english', comments));
+-- COMMAND ----------
 
--- will need to rewrite the WHERE condition to include this:
-to_tsvector('english', r.comments) @@ to_tsquery('english', 'great & place | clean & place')
+-- MAGIC %python
+-- MAGIC from pyspark.sql import functions as F
+-- MAGIC import time
+-- MAGIC
+-- MAGIC # can this based on what size we testing
+-- MAGIC scale = "small"
+-- MAGIC city_name = "Melbourne"
+-- MAGIC
+-- MAGIC start_time = time.time()
+-- MAGIC
+-- MAGIC listings = spark.read.format("csv") \
+-- MAGIC     .option("header", "true") \
+-- MAGIC     .option("inferSchema", "true") \
+-- MAGIC     .option("nullValue", "NULL") \
+-- MAGIC     .option("dateFormat", "yyyy-MM-dd") \
+-- MAGIC     .option("samplingRatio", "0.01") \
+-- MAGIC     .load(f"/Volumes/workspace/data3404/airbnb/airbnb_listings-{scale}.csv")
+-- MAGIC
+-- MAGIC reviews = spark.read.format("csv") \
+-- MAGIC     .option("header", "true") \
+-- MAGIC     .option("inferSchema", "true") \
+-- MAGIC     .option("nullValue", "NULL") \
+-- MAGIC     .option("dateFormat", "yyyy-MM-dd") \
+-- MAGIC     .option("samplingRatio", "0.01") \
+-- MAGIC     .load(f"/Volumes/workspace/data3404/airbnb/airbnb_reviews-{scale}.csv")
+-- MAGIC
+-- MAGIC cities = spark.read.format("csv") \
+-- MAGIC     .option("header", "true") \
+-- MAGIC     .option("inferSchema", "true") \
+-- MAGIC     .option("nullValue", "NULL") \
+-- MAGIC     .load("/Volumes/workspace/data3404/airbnb/airbnb_cities.csv")
+-- MAGIC
+-- MAGIC neighbourhoods = spark.read.format("csv") \
+-- MAGIC     .option("header", "true") \
+-- MAGIC     .option("inferSchema", "true") \
+-- MAGIC     .option("nullValue", "NULL") \
+-- MAGIC     .load("/Volumes/workspace/data3404/airbnb/airbnb_neighbourhoods.csv")
 
--- 3. 
-CREATE INDEX idx_listings_city_host_neighbourhood ON Listings(city_id, host_id, neighbourhood);
+-- COMMAND ----------
 
--- 4. 
-CREATE INDEX idx_hosts_verified ON Hosts(id) WHERE is_verified = 't';
+-- MAGIC %python
+-- MAGIC
+-- MAGIC city_id = cities.filter(F.col("city_name") == city_name).first()["id"]
+-- MAGIC
+-- MAGIC city_listings = listings.filter(F.col("city_id") == city_id)
+-- MAGIC
+-- MAGIC # remove hotels and hostels
+-- MAGIC city_listings = city_listings.filter(~F.lower(F.col("property_type")).like("%hotel%"))
+-- MAGIC city_listings = city_listings.filter(~F.lower(F.col("property_type")).like("%hostel%"))
+-- MAGIC
+-- MAGIC city_listings.show(5)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC # join reviews with our filtered listings
+-- MAGIC reviews_listings = reviews.join(city_listings, reviews.listing_id == city_listings.id, "inner")
+-- MAGIC
+-- MAGIC # calculate booking duration - min 3 days max 21 days
+-- MAGIC reviews_listings = reviews_listings.withColumn("duration", F.greatest(F.lit(3), F.col("minimum_nights")))
+-- MAGIC reviews_listings = reviews_listings.withColumn("duration", F.least(F.lit(21), F.col("duration")))
+-- MAGIC
+-- MAGIC reviews_listings.select("listing_id", "minimum_nights", "duration").show(5)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC # filter reviews to 2025 only
+-- MAGIC reviews_2025 = reviews_listings.filter(F.col("review_date") >= '2025-01-01')
+-- MAGIC reviews_2025 = reviews_2025.filter(F.col("review_date") < '2026-01-01')
+-- MAGIC
+-- MAGIC # count reviews per listing and keep useful columns
+-- MAGIC reviews_grouped = reviews_2025.groupBy("listing_id", "minimum_nights", "duration", "neighbourhood", "rating", "property_type", "listing_name") \
+-- MAGIC     .agg(F.count("*").alias("num_reviews"))
+-- MAGIC
+-- MAGIC # calculate occupied days using san fran
+-- MAGIC reviews_grouped = reviews_grouped.withColumn("occupied_days", (F.col("num_reviews") / 0.67) * F.col("duration"))
+-- MAGIC
+-- MAGIC reviews_grouped.show(5)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC # calculate occupancy rate (occupied days / 365), capped at 1.0 (100%)
+-- MAGIC reviews_grouped = reviews_grouped.withColumn("occupancy_rate", F.col("occupied_days") / F.lit(365.0))
+-- MAGIC reviews_grouped = reviews_grouped.withColumn("occupancy_rate", F.least(F.lit(1.0), F.col("occupancy_rate")))
+-- MAGIC
+-- MAGIC reviews_grouped.select("listing_id", "listing_name", "occupied_days", "occupancy_rate").show(5)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC # join with neighbourhoods to get neighbourhood names
+-- MAGIC occupancy_with_nhood = reviews_grouped.join(neighbourhoods, reviews_grouped.neighbourhood == neighbourhoods.id, "inner")
+-- MAGIC
+-- MAGIC # group by neighbourhood and calculate average occupancy rate
+-- MAGIC top_neighbourhoods = occupancy_with_nhood.groupBy("nhood_name") \
+-- MAGIC     .agg(
+-- MAGIC         F.count("listing_id").alias("num_listings"),
+-- MAGIC         F.avg("occupancy_rate").alias("avg_occupancy_rate")
+-- MAGIC     )
+-- MAGIC
+-- MAGIC # sort by average occupancy rate descending
+-- MAGIC top_neighbourhoods = top_neighbourhoods.orderBy(F.desc("avg_occupancy_rate"), F.asc("nhood_name"))
+-- MAGIC top_neighbourhoods = top_neighbourhoods.limit(10)
+-- MAGIC
+-- MAGIC top_neighbourhoods.show()
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC from pyspark.sql.window import Window
+-- MAGIC
+-- MAGIC # rank listings within each neighbourhood by occupancy rate
+-- MAGIC window = Window.partitionBy("nhood_name").orderBy(F.desc("occupancy_rate"), F.asc("listing_name"))
+-- MAGIC occupancy_with_nhood = occupancy_with_nhood.withColumn("rank", F.rank().over(window))
+-- MAGIC
+-- MAGIC # keep only top 3 listings per neighbourhood
+-- MAGIC top3_listings = occupancy_with_nhood.filter(F.col("rank") <= 3)
+-- MAGIC
+-- MAGIC # keep only neighbourhoods that are in our top 10
+-- MAGIC top_nhood_names = [row["nhood_name"] for row in top_neighbourhoods.collect()]
+-- MAGIC top3_listings = top3_listings.filter(F.col("nhood_name").isin(top_nhood_names))
+-- MAGIC
+-- MAGIC top3_listings.select("nhood_name", "listing_name", "property_type", "rating", "occupancy_rate").show()
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC # THIS IS ALL AI --> need to change
+-- MAGIC top3_formatted = top3_listings.groupBy("nhood_name") \
+-- MAGIC     .agg(
+-- MAGIC         F.collect_list(
+-- MAGIC             F.struct("listing_name", "property_type", "rating", "occupancy_rate")
+-- MAGIC         ).alias("top3")
+-- MAGIC     )
+-- MAGIC
+-- MAGIC # Join back with nhood_occupancy to get num_listings and avg_occupancy_rate
+-- MAGIC final = nhood_occupancy.join(top3_formatted, "nhood_name")
+-- MAGIC
+-- MAGIC # Format the output string
+-- MAGIC def format_row(row):
+-- MAGIC     listings_str = ", ".join([
+-- MAGIC         f"({l['listing_name']}, {l['property_type']}, {l['rating']}, {round(l['occupancy_rate'], 4)})"
+-- MAGIC         for l in row['top3'][:3]
+-- MAGIC     ])
+-- MAGIC     return f"{row['nhood_name']}\t{row['num_listings']}\t{round(row['avg_occupancy_rate'], 4)}\t[{listings_str}]"
+-- MAGIC
+-- MAGIC for row in final.orderBy(F.desc("avg_occupancy_rate"), F.asc("nhood_name")).collect():
+-- MAGIC     print(format_row(row))
+-- MAGIC
+-- MAGIC end_time = time.time()
+-- MAGIC print(f"Total runtime: {round(end_time - start_time, 2)} seconds")
+-- MAGIC
