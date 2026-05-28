@@ -188,8 +188,8 @@ CREATE INDEX idx_reviews_small_listing_id ON Airbnb.Reviews_Small(listing_id);
 CREATE INDEX idx_reviews_medium_listing_id ON Airbnb.Reviews_Medium(listing_id);
 CREATE INDEX idx_reviews_large_listing_id ON Airbnb.Reviews_Large(listing_id);
 
--- 2. The Partial Filter (Standard B-Tree for Hosts - applies to all sizes)
-CREATE INDEX idx_hosts_verified_partial ON Airbnb.Hosts(id) WHERE is_verified = 't';
+-- 2. Index (GIN Comments trigram)
+CREATE INDEX idx_reviews_large_comments_trgm ON Airbnb.Reviews_Large USING gin(comments gin_trgm_ops);
 
 
 -- 3. Trigrams for the Reviews tables
